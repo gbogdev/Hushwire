@@ -1,0 +1,55 @@
+name: build
+
+# Builds Hushwire from source on a clean GitHub-hosted Windows machine, and produces the installers.
+# This is the "verifiable build" that code signing (SignPath Foundation) is meant to attest to.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Unit tests
+        run: dotnet test tests/Hushwire.Tests -c Release
+
+      - name: Publish both flavors of Hushwire.exe
+        shell: pwsh
+        run: ./scripts/build-release.ps1
+
+      - name: Build the installers
+        shell: pwsh
+        run: |
+          ./installer/build-installer.ps1
+          ./installer/build-installer.ps1 -Standalone
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Set-Location dist
+          Get-FileHash Hushwire-Setup.msi, Hushwire-Setup-standalone.msi, Hushwire-Portable.exe, Hushwire-Portable-standalone.exe -Algorithm SHA256 |
+            ForEach-Object { '{0} *{1}' -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } | Set-Content SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hushwire-installers
+          path: |
+            dist/Hushwire-Setup.msi
+            dist/Hushwire-Setup-standalone.msi
+            dist/Hushwire-Portable.exe
+            dist/Hushwire-Portable-standalone.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error

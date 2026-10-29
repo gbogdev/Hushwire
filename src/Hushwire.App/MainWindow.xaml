@@ -1,0 +1,257 @@
+<Window x:Class="Hushwire.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Hushwire" Width="1080" Height="720" MinWidth="920" MinHeight="600"
+        Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen" UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+  <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+    <!-- sidebar -->
+    <Border Background="{StaticResource Side}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="14,20,14,16">
+        <StackPanel DockPanel.Dock="Top" Margin="6,0,0,22" Orientation="Horizontal">
+          <Ellipse x:Name="Dot" Width="12" Height="12" Fill="{StaticResource Muted}" Margin="0,0,10,0"/>
+          <TextBlock Text="Hushwire" FontSize="20" FontWeight="SemiBold"/>
+        </StackPanel>
+        <TextBlock x:Name="SideNote" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" FontSize="11" TextWrapping="Wrap" Margin="6,0"/>
+        <StackPanel>
+          <RadioButton x:Name="NavDash" Style="{StaticResource Nav}" Content="Dashboard" GroupName="n" IsChecked="True" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavActivity" Style="{StaticResource Nav}" Content="Activity log" GroupName="n" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavLists" Style="{StaticResource Nav}" Content="Filter lists" GroupName="n" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavRules" Style="{StaticResource Nav}" Content="Allow / Block" GroupName="n" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavApps" Style="{StaticResource Nav}" Content="Applications" GroupName="n" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavSettings" Style="{StaticResource Nav}" Content="Settings" GroupName="n" Checked="Nav_Checked"/>
+          <RadioButton x:Name="NavAbout" Style="{StaticResource Nav}" Content="About &amp; diagnostics" GroupName="n" Checked="Nav_Checked"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Column="1">
+      <!-- ============ DASHBOARD ============ -->
+      <ScrollViewer x:Name="PgDash" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28">
+          <Border Style="{StaticResource Card}" Padding="24">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock x:Name="HeroTitle" FontSize="26" FontWeight="SemiBold"/>
+                <TextBlock x:Name="HeroSub" Style="{StaticResource MutedText}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="PauseBtn" Content="Pause ▾" Style="{StaticResource Btn}" Margin="0,0,10,0" Click="Pause_Click">
+                  <Button.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Pause for 5 minutes" Tag="5" Click="PauseItem_Click"/>
+                      <MenuItem Header="Pause for 30 minutes" Tag="30" Click="PauseItem_Click"/>
+                      <MenuItem Header="Pause for 1 hour" Tag="60" Click="PauseItem_Click"/>
+                      <MenuItem x:Name="ResumeItem" Header="Resume now" Tag="0" Click="PauseItem_Click"/>
+                    </ContextMenu>
+                  </Button.ContextMenu>
+                </Button>
+                <Button x:Name="ToggleBtn" Style="{StaticResource Primary}" MinWidth="130" Click="Toggle_Click"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <UniformGrid Columns="4" Margin="0,14,0,0">
+            <Border Style="{StaticResource Card}" Margin="0,0,7,0"><StackPanel><TextBlock Text="DNS lookups" Style="{StaticResource MutedText}"/><TextBlock x:Name="TQueries" FontSize="30" FontWeight="SemiBold" Margin="0,6,0,2"/><TextBlock x:Name="TQueriesSub" Style="{StaticResource MutedText}" FontSize="12"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}" Margin="7,0"><StackPanel><TextBlock Text="Blocked" Style="{StaticResource MutedText}"/><TextBlock x:Name="TBlocked" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource Good}" Margin="0,6,0,2"/><TextBlock x:Name="TBlockedSub" Style="{StaticResource MutedText}" FontSize="12"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}" Margin="7,0"><StackPanel><TextBlock Text="Allowed" Style="{StaticResource MutedText}"/><TextBlock x:Name="TAllowed" FontSize="30" FontWeight="SemiBold" Margin="0,6,0,2"/><TextBlock x:Name="TAllowedSub" Style="{StaticResource MutedText}" FontSize="12"/></StackPanel></Border>
+            <Border Style="{StaticResource Card}" Margin="7,0,0,0"><StackPanel><TextBlock Text="Share blocked" Style="{StaticResource MutedText}"/><TextBlock x:Name="TRate" FontSize="30" FontWeight="SemiBold" Margin="0,6,0,2"/><TextBlock x:Name="TRateSub" Style="{StaticResource MutedText}" FontSize="12"/></StackPanel></Border>
+          </UniformGrid>
+
+          <UniformGrid Columns="3" Margin="0,14,0,0">
+            <Border Style="{StaticResource Card}" Margin="0,0,7,0">
+              <StackPanel>
+                <TextBlock Text="Blocked by category" Style="{StaticResource H2}"/>
+                <ItemsControl x:Name="CatList" ItemTemplate="{StaticResource RowTpl}"/>
+                <TextBlock Text="Blocked by list" Style="{StaticResource H2}" Margin="0,16,0,10"/>
+                <ItemsControl x:Name="ListList" ItemTemplate="{StaticResource RowTpl}"/>
+                <TextBlock x:Name="EmptyCat" Style="{StaticResource MutedText}" TextWrapping="Wrap" Text="Nothing blocked yet."/>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="7,0">
+              <StackPanel><TextBlock Text="Top blocked domains" Style="{StaticResource H2}"/><ItemsControl x:Name="DomList" ItemTemplate="{StaticResource RowTpl}"/></StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}" Margin="7,0,0,0">
+              <StackPanel>
+                <TextBlock Text="Who asked (blocked / lookups)" Style="{StaticResource H2}"/>
+                <ItemsControl x:Name="AppList" ItemTemplate="{StaticResource RowTpl}"/>
+                <TextBlock Style="{StaticResource MutedText}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="Most Windows apps ask through the shared DNS Client service, so they appear together as “Windows DNS Client”."/>
+              </StackPanel>
+            </Border>
+          </UniformGrid>
+
+          <TextBlock x:Name="Footnote" Style="{StaticResource MutedText}" FontSize="11.5" TextWrapping="Wrap" Margin="2,16,0,0"/>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- ============ ACTIVITY ============ -->
+      <Grid x:Name="PgActivity" Margin="28" Visibility="Collapsed">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <TextBlock Text="Activity log" Style="{StaticResource H1}"/>
+        <DockPanel Grid.Row="1" Margin="0,12,0,10">
+          <Button Content="Clear" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="ClearActivity_Click" Margin="8,0,0,0"/>
+          <Button Content="Block domain" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="ActBlock_Click" Margin="8,0,0,0"/>
+          <Button Content="Allow domain" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="ActAllow_Click" Margin="8,0,0,0"/>
+          <CheckBox x:Name="LogAllowedChk" Content="Also log allowed lookups" DockPanel.Dock="Left" Margin="0,0,16,0" VerticalAlignment="Center" Click="LogAllowed_Click"/>
+          <TextBox x:Name="ActFilter" TextChanged="ActFilter_Changed" ToolTip="Filter by domain, app or list"/>
+        </DockPanel>
+        <ListView x:Name="ActView" Grid.Row="2" SelectionMode="Single">
+          <ListView.View><GridView>
+            <GridViewColumn Header="Time" Width="70" DisplayMemberBinding="{Binding TimeText}"/>
+            <GridViewColumn Header="Domain" Width="270" DisplayMemberBinding="{Binding Domain}"/>
+            <GridViewColumn Header="Type" Width="56" DisplayMemberBinding="{Binding Type}"/>
+            <GridViewColumn Header="Result" Width="100" DisplayMemberBinding="{Binding Result}"/>
+            <GridViewColumn Header="Source" Width="170" DisplayMemberBinding="{Binding Source}"/>
+            <GridViewColumn Header="App" Width="140" DisplayMemberBinding="{Binding App}"/>
+          </GridView></ListView.View>
+        </ListView>
+      </Grid>
+
+      <!-- ============ LISTS ============ -->
+      <Grid x:Name="PgLists" Margin="28" Visibility="Collapsed">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock Text="Filter lists" Style="{StaticResource H1}"/>
+        <DockPanel Grid.Row="1" Margin="0,12,0,10">
+          <Button Content="Add list…" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="AddList_Click" Margin="8,0,0,0"/>
+          <Button Content="Update all now" Style="{StaticResource Primary}" DockPanel.Dock="Right" Click="UpdateAll_Click" Margin="8,0,0,0"/>
+          <TextBlock x:Name="ListsStatus" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+        </DockPanel>
+        <ListView x:Name="ListsView" Grid.Row="2" SelectionMode="Single" SelectionChanged="ListSel_Changed">
+          <ListView.View><GridView>
+            <GridViewColumn Header="On" Width="44"><GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding Enabled}" Click="ListToggle_Click" Margin="0"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+            <GridViewColumn Header="Name" Width="230" DisplayMemberBinding="{Binding Name}"/>
+            <GridViewColumn Header="Category" Width="80" DisplayMemberBinding="{Binding Category}"/>
+            <GridViewColumn Header="Rules" Width="80" DisplayMemberBinding="{Binding RulesText}"/>
+            <GridViewColumn Header="Last update" Width="130" DisplayMemberBinding="{Binding LastText}"/>
+            <GridViewColumn Header="Status" Width="210" DisplayMemberBinding="{Binding StatusText}"/>
+          </GridView></ListView.View>
+        </ListView>
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+        <TextBlock x:Name="ListDetail" TextWrapping="Wrap" Margin="0,0,0,8" MinHeight="34"/>
+        <DockPanel>
+          <Button Content="Remove" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="RemoveList_Click"/>
+          <Button Content="Update selected" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="UpdateSel_Click" Margin="0,0,8,0"/>
+          <TextBlock Style="{StaticResource MutedText}" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"
+                     Text="Lists are downloaded over HTTPS, checked, and swapped in atomically — a bad download never replaces a working list. Cosmetic and URL-path rules in a list can't be applied at DNS level and are skipped."/>
+        </DockPanel>
+        </StackPanel>
+      </Grid>
+
+      <!-- ============ RULES ============ -->
+      <ScrollViewer x:Name="PgRules" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28">
+          <TextBlock Text="Allow / Block" Style="{StaticResource H1}"/>
+          <TextBlock Style="{StaticResource MutedText}" Margin="0,4,0,12" TextWrapping="Wrap" Text="Your own rules win over every list. A rule covers the domain and all its subdomains; a more specific rule beats a broader one."/>
+          <UniformGrid Columns="2">
+            <Border Style="{StaticResource Card}" Margin="0,0,7,0"><StackPanel>
+              <TextBlock Text="Allowlist" Style="{StaticResource H2}"/>
+              <ListBox x:Name="AllowBox" Height="190"/>
+              <DockPanel Margin="0,8,0,0"><Button Content="Remove" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="RemAllow_Click" Margin="8,0,0,0"/><Button Content="Add" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="AddAllow_Click" Margin="8,0,0,0"/><TextBox x:Name="AllowIn" KeyDown="AllowIn_KeyDown"/></DockPanel>
+            </StackPanel></Border>
+            <Border Style="{StaticResource Card}" Margin="7,0,0,0"><StackPanel>
+              <TextBlock Text="Blocklist" Style="{StaticResource H2}"/>
+              <ListBox x:Name="BlockBox" Height="190"/>
+              <DockPanel Margin="0,8,0,0"><Button Content="Remove" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="RemBlock_Click" Margin="8,0,0,0"/><Button Content="Add" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="AddBlock_Click" Margin="8,0,0,0"/><TextBox x:Name="BlockIn" KeyDown="BlockIn_KeyDown"/></DockPanel>
+            </StackPanel></Border>
+          </UniformGrid>
+          <Border Style="{StaticResource Card}" Margin="0,14,0,0"><StackPanel>
+            <TextBlock Text="Why is this domain blocked (or not)?" Style="{StaticResource H2}"/>
+            <DockPanel><Button Content="Check" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="Explain_Click" Margin="8,0,0,0"/><TextBox x:Name="ExplainIn" KeyDown="ExplainIn_KeyDown"/></DockPanel>
+            <TextBlock x:Name="ExplainOut" Margin="0,10,0,0" TextWrapping="Wrap"/>
+          </StackPanel></Border>
+          <DockPanel Margin="0,14,0,0">
+            <Button Content="Import…" Style="{StaticResource Btn}" Click="ImportRules_Click" DockPanel.Dock="Left"/>
+            <Button Content="Export…" Style="{StaticResource Btn}" Click="ExportRules_Click" DockPanel.Dock="Left" Margin="8,0,0,0"/>
+            <TextBlock/>
+          </DockPanel>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- ============ APPS ============ -->
+      <Grid x:Name="PgApps" Margin="28" Visibility="Collapsed">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <TextBlock Text="Applications" Style="{StaticResource H1}"/>
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,12,0,10" Padding="14,10">
+          <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" FontSize="12.5"
+            Text="Windows usually forwards app lookups through its shared DNS Client service, so many apps can't be told apart — those appear as “Windows DNS Client”. Apps that run their own resolver (most browsers, some games) are identified exactly. Exempting an app turns filtering off for that app's lookups only."/>
+        </Border>
+        <ListView x:Name="AppsView" Grid.Row="2" SelectionMode="Single">
+          <ListView.View><GridView>
+            <GridViewColumn Header="Exempt" Width="60"><GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding Exempt}" IsEnabled="{Binding CanExempt}" Click="AppExempt_Click" Margin="0"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+            <GridViewColumn Header="Application" Width="230" DisplayMemberBinding="{Binding Name}"/>
+            <GridViewColumn Header="Lookups" Width="80" DisplayMemberBinding="{Binding QueriesText}"/>
+            <GridViewColumn Header="Blocked" Width="80" DisplayMemberBinding="{Binding BlockedText}"/>
+            <GridViewColumn Header="Path" Width="330" DisplayMemberBinding="{Binding Path}"/>
+          </GridView></ListView.View>
+        </ListView>
+      </Grid>
+
+      <!-- ============ SETTINGS ============ -->
+      <ScrollViewer x:Name="PgSettings" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28" MaxWidth="720" HorizontalAlignment="Left">
+          <TextBlock Text="Settings" Style="{StaticResource H1}"/>
+          <Border Style="{StaticResource Card}" Margin="0,14,0,0"><StackPanel>
+            <TextBlock Text="General" Style="{StaticResource H2}"/>
+            <CheckBox x:Name="AutoStartChk" Content="Start Hushwire when I sign in to Windows (runs elevated, no prompt)" Click="AutoStart_Click"/>
+            <CheckBox x:Name="CnameChk" Content="Detect trackers hidden behind CNAME aliases" Click="Cname_Click"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="When a domain is blocked, answer with" Style="{StaticResource H2}"/>
+            <RadioButton x:Name="ModeNull" Content="0.0.0.0 / :: (recommended — apps fail fast)" GroupName="m" Click="Mode_Click"/>
+            <RadioButton x:Name="ModeNx" Content="“Domain does not exist” (NXDOMAIN)" GroupName="m" Click="Mode_Click"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Upstream DNS" Style="{StaticResource H2}"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8" Text="Allowed lookups are forwarded here. Leave empty to keep using the DNS servers Windows was already using (recommended — keeps work/VPN/captive-portal names working). Separate several addresses with spaces."/>
+            <DockPanel><Button Content="Save" Style="{StaticResource Btn}" DockPanel.Dock="Right" Margin="8,0,0,0" Click="SaveUpstream_Click"/><TextBox x:Name="UpstreamIn"/></DockPanel>
+            <TextBlock x:Name="UpstreamNow" Style="{StaticResource MutedText}" Margin="0,8,0,0" FontSize="12"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="YouTube &amp; Twitch ads inside the page (advanced)" Style="{StaticResource H2}"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
+              Text="DNS blocking can't remove these ads because they come from the same servers as the video. This option makes Hushwire act as a local go-between for YouTube and Twitch only: it removes the ad data from the player information before your browser sees it. It needs a certificate that Hushwire creates and installs on this PC; that certificate can only vouch for youtube.com and ttvnw.net, and its key never leaves this machine. Works in Chrome, Edge and other Windows-certificate browsers (not Firefox). It's a cat-and-mouse game: YouTube and Twitch change their code, so it can stop working without warning."/>
+            <CheckBox x:Name="AdFilterChk" Content="Filter YouTube and Twitch ads" Click="AdFilter_Click"/>
+            <TextBlock x:Name="AdFilterNow" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            <Button x:Name="AdFilterRemoveBtn" Content="Turn off and remove the certificate" Style="{StaticResource Btn}" HorizontalAlignment="Left" Margin="0,10,0,0" Click="AdFilterRemove_Click"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Data &amp; recovery" Style="{StaticResource H2}"/>
+            <WrapPanel>
+              <Button Content="Repair network settings" Style="{StaticResource Btn}" Click="Repair_Click" Margin="0,0,8,8"/>
+              <Button Content="Reset statistics" Style="{StaticResource Btn}" Click="ResetStats_Click" Margin="0,0,8,8"/>
+              <Button Content="Open data folder" Style="{StaticResource Btn}" Click="OpenData_Click" Margin="0,0,8,8"/>
+            </WrapPanel>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" FontSize="12" Text="Hushwire keeps statistics and settings on this PC only. Nothing about your browsing is sent anywhere; the app only contacts the list URLs you have enabled."/>
+          </StackPanel></Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- ============ ABOUT ============ -->
+      <ScrollViewer x:Name="PgAbout" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28">
+          <TextBlock Text="About &amp; diagnostics" Style="{StaticResource H1}"/>
+          <TextBlock x:Name="AboutVer" Style="{StaticResource MutedText}" Margin="0,4,0,12"/>
+          <Border Style="{StaticResource Card}"><StackPanel>
+            <DockPanel Margin="0,0,0,10"><Button Content="Run checks" Style="{StaticResource Primary}" DockPanel.Dock="Right" Click="Diag_Click"/><TextBlock Text="Diagnostics" Style="{StaticResource H2}" Margin="0"/></DockPanel>
+            <ItemsControl x:Name="DiagList"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Margin="0,3" TextWrapping="Wrap" FontFamily="Consolas"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="What this does — and doesn't do" Style="{StaticResource H2}"/>
+            <TextBlock TextWrapping="Wrap" LineHeight="21" Text="Hushwire blocks at the DNS level: when any program on this PC looks up a hostname that is on an ad, tracker or malware list, the lookup gets a dead answer, so the connection never starts.&#10;&#10;It cannot remove ads that are served from the same hostname as the content (for example YouTube video ads or many news-site ads), hide empty ad frames, or count or delete cookies. The numbers on the dashboard are DNS lookups that were blocked — not ads, banners or cookies. A single page can trigger dozens of lookups.&#10;&#10;Browsers or apps that use their own encrypted DNS (“Secure DNS / DNS over HTTPS”), hard-coded DNS servers, or a VPN's DNS can bypass it. Use Diagnostics to see which adapters are covered. For on-page blocking, use a browser blocker such as uBlock Origin alongside Hushwire."/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="License" Style="{StaticResource H2}"/>
+            <TextBlock TextWrapping="Wrap" LineHeight="21" Text="Copyright © 2026 gbogdev. Hushwire is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3. It comes with ABSOLUTELY NO WARRANTY. The source code is at github.com/gbogdev/Hushwire."/>
+            <WrapPanel Margin="0,10,0,0">
+              <Button Content="View license" Style="{StaticResource Btn}" Click="License_Click" Margin="0,0,8,0"/>
+              <Button Content="Third-party notices" Style="{StaticResource Btn}" Click="Notices_Click"/>
+            </WrapPanel>
+          </StackPanel></Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</Window>

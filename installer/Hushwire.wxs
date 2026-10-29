@@ -1,0 +1,69 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!--
+    Per-machine installer for Hushwire. Build with installer\build-installer.ps1.
+    Variables: Version (e.g. 0.1.0), SourceDir (folder holding the published Hushwire.exe), RepoRoot.
+  -->
+  <Package Name="Hushwire" Manufacturer="Hushwire" Version="$(Version)" UpgradeCode="70fc6f64-a656-4c7b-b70c-195b87ee74c9"
+           Scope="perMachine" InstallerVersion="500" Compressed="yes">
+    <SummaryInformation Description="Hushwire: system-wide ad, tracker and malware blocker" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Hushwire is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- No OS-version launch condition: the first version of this installer had one and it refused to install on Windows 11
+         (build 26300) even though the same condition evaluates true when tested outside an install. The .NET runtime check at
+         first launch already stops unsupported systems with a clear message. -->
+
+    <Icon Id="HushwireIcon" SourceFile="$(RepoRoot)\src\Hushwire.App\Assets\hushwire.ico" />
+    <Property Id="ARPPRODUCTICON" Value="HushwireIcon" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Hushwire" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="HushwireMenuFolder" Name="Hushwire" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Component Id="HushwireExeComponent">
+        <File Id="HushwireExe" Source="$(SourceDir)\Hushwire.exe" KeyPath="yes" />
+        <!-- leftovers from the app's own self-copy logic, and a stale unmanaged copy of the exe from an earlier manual run -->
+        <RemoveFile Id="RemoveOldCopy" Name="Hushwire.exe.old" On="both" />
+        <RemoveFile Id="RemoveNewCopy" Name="Hushwire.exe.new" On="both" />
+        <RemoveFile Id="ReplaceUnmanagedExe" Name="Hushwire.exe" On="install" />
+
+        <!-- Start menu (all users). Kept in this component so the shortcuts and the exe they point to install and go together. -->
+        <Shortcut Id="HushwireShortcut" Directory="HushwireMenuFolder" Name="Hushwire" Target="[#HushwireExe]" WorkingDirectory="INSTALLFOLDER"
+                  Description="Open Hushwire" />
+        <!-- reachable even if the app itself is broken: puts DNS back from the saved journal -->
+        <Shortcut Id="RepairShortcut" Directory="HushwireMenuFolder" Name="Hushwire - repair network settings" Target="[#HushwireExe]" Arguments="--restore"
+                  WorkingDirectory="INSTALLFOLDER" Description="Restore your normal DNS settings" />
+        <RemoveFolder Id="RemoveStartMenuFolder" Directory="HushwireMenuFolder" On="uninstall" />
+      </Component>
+      <!-- the license and notices travel with every copy of the program (GPL-3.0 requires it; .NET's MIT notice too) -->
+      <Component Id="LicenseFilesComponent">
+        <File Id="LicenseFile" Source="$(RepoRoot)\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="NoticesFilesComponent">
+        <File Id="NoticesFile" Source="$(RepoRoot)\THIRD_PARTY_NOTICES.md" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="Hushwire" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+    </Feature>
+
+    <!-- Ask a running copy to exit first (it restores DNS on the way out) so its file isn't in use. Harmless if nothing runs. -->
+    <CustomAction Id="StopHushwire" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]Hushwire.exe&quot; --stop"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <!-- On a real uninstall (not an upgrade): DNS back, scheduled tasks, YouTube/Twitch certificate and Hushwire's own data. -->
+    <CustomAction Id="UninstallCleanup" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]Hushwire.exe&quot; --uninstall"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="LaunchHushwire" FileRef="HushwireExe" ExeCommand="" Execute="immediate" Impersonate="yes" Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="StopHushwire" After="InstallInitialize" />
+      <Custom Action="UninstallCleanup" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+      <Custom Action="LaunchHushwire" After="InstallFinalize" Condition="NOT REMOVE AND UILevel &gt; 2" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>

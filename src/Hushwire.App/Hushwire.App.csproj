@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>Hushwire</AssemblyName>
+    <RootNamespace>Hushwire.App</RootNamespace>
+    <StartupObject>Hushwire.App.Program</StartupObject>
+    <ApplicationIcon>Assets\hushwire.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(Configuration)'=='Debug'">app.dev.manifest</ApplicationManifest>
+    <Version>0.1.3</Version>
+    <Product>Hushwire</Product>
+    <Company>gbogdev</Company>
+    <Copyright>Copyright (C) 2026 gbogdev. GNU GPL v3.0.</Copyright>
+    <Description>System-wide ad, tracker and malware blocker for Windows (local DNS filter)</Description>
+    <RepositoryUrl>https://github.com/gbogdev/Hushwire</RepositoryUrl>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- a tray app: one GC thread less, and no profiling overhead on startup -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>false</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hushwire.Core\Hushwire.Core.csproj" />
+    <Resource Include="Assets\hushwire.ico" />
+  </ItemGroup>
+</Project>
