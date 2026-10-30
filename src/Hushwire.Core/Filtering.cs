@@ -7,7 +7,7 @@ using System.Text;
 namespace Hushwire.Core;
 
 public enum Verdict { Allow, Block }
-public enum Origin { Default, Paused, Protected, AppExempt, UserAllow, UserBlock, ListAllow, ListBlock, Cname, Redirect }
+public enum Origin { Default, Paused, Protected, AppExempt, UserAllow, UserBlock, ListAllow, ListBlock, Cname, Redirect, SecureDns }
 
 public readonly record struct Decision(Verdict Verdict, Origin Origin, string? ListId = null, string? Rule = null)
 {

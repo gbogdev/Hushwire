@@ -16,6 +16,12 @@ public sealed class DnsProxy : IDisposable
     public Func<IReadOnlyList<IPAddress>> Upstreams { get; init; } = () => [];
     public Func<BlockMode> Mode { get; init; } = () => BlockMode.NullIp;
     public Func<bool> CnameCheck { get; init; } = () => true;
+    /// <summary>When true, the names browsers use to switch to their own encrypted DNS are answered "does not exist" (see <see cref="SecureDns"/>).</summary>
+    public Func<bool> BlockSecureDns { get; init; } = () => false;
+    /// <summary>Encrypted upstream. When set, lookups go there first and fall back to the ordinary upstream on any failure. Change it at any time.</summary>
+    public volatile DohUpstream? Doh;
+    public long DohFallbacks => Interlocked.Read(ref dohFallbacks);
+    long dohFallbacks;
     /// <summary>Only consulted when <see cref="HasExemptApps"/> is true: returns true if the sender is an exempt app.</summary>
     public Func<IPEndPoint, bool, bool>? IsExemptApp { get; init; }
     public Func<bool> HasExemptApps { get; init; } = () => false;
@@ -178,11 +184,16 @@ public sealed class DnsProxy : IDisposable
         Decision d;
         if (!Active()) d = new(Verdict.Allow, Origin.Paused);
         else if (HasExemptApps() && IsExemptApp?.Invoke(remote, viaTcp) == true) d = new(Verdict.Allow, Origin.AppExempt);
-        else d = Snapshot().Decide(name);
+        else
+        {
+            d = Snapshot().Decide(name);
+            // your own allow rule still wins: someone may rely on one of these names
+            if (d.Origin != Origin.UserAllow && BlockSecureDns() && SecureDns.Matches(name)) d = new(Verdict.Block, Origin.SecureDns, "secure-dns", name);
+        }
 
         if (d.Blocked)
         {
-            var b = DnsWire.BuildBlock(q, qEnd, qtype, Mode());
+            var b = DnsWire.BuildBlock(q, qEnd, qtype, d.Origin == Origin.SecureDns ? BlockMode.Nxdomain : Mode());
             OnQuery?.Invoke(new(DateTime.Now, name, qtype, d, false, viaTcp, remote, Us(), false));
             return b;
         }
@@ -253,6 +264,13 @@ public sealed class DnsProxy : IDisposable
 
     async Task<byte[]?> Forward(byte[] q, bool viaTcp, CancellationToken ct)
     {
+        var doh = Doh;
+        if (doh is not null)
+        {
+            var secure = await doh.QueryAsync(q, ct);
+            if (secure is not null) return secure;
+            Interlocked.Increment(ref dohFallbacks);      // the encrypted server didn't answer: use the ordinary upstream so DNS keeps working
+        }
         var ups = Upstreams();
         int n = ups.Count;
         for (int i = 0; i < n; i++)

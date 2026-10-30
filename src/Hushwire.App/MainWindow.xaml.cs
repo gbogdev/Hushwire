@@ -420,6 +420,12 @@ public partial class MainWindow : Window
         var s = prot.S;
         AutoStartChk.IsChecked = s.StartWithWindows; CnameChk.IsChecked = s.CnameCheck; LogAllowedChk.IsChecked = s.LogAllowed;
         (s.BlockMode == "Nxdomain" ? ModeNx : ModeNull).IsChecked = true;
+        SecureDnsChk.IsChecked = s.BlockSecureDns;
+        if (EncDnsBox.ItemsSource is null)
+            EncDnsBox.ItemsSource = new[] { new KeyValuePair<string, string>("Off", "Off (use my normal DNS servers)") }
+                .Concat(DohUpstream.Providers.Select(p => new KeyValuePair<string, string>(p.Id, p.Name))).ToList();
+        loadingSettings = true; EncDnsBox.SelectedValue = s.EncryptedDns; loadingSettings = false;
+        EncDnsNow.Text = s.EncryptedDns == "Off" ? "" : $"Using {DohUpstream.Find(s.EncryptedDns)?.Name}. Takes effect immediately while protection is on.";
         UpstreamIn.Text = s.UpstreamOverride;
         AdFilterChk.IsChecked = s.AdFilter;
         if (prot.Dev) { AutoStartChk.IsEnabled = false; AdFilterChk.IsEnabled = false; }
@@ -481,6 +487,14 @@ public partial class MainWindow : Window
         RefreshAdFilterText();
     }
 
+    bool loadingSettings;
+    void SecureDns_Click(object sender, RoutedEventArgs e) { prot.S.BlockSecureDns = SecureDnsChk.IsChecked == true; prot.Save(); prot.Proxy?.Cache.Clear(); if (!prot.Dev) DnsApi.Flush(); }
+    void EncDns_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (loadingSettings || EncDnsBox.SelectedValue is not string id) return;
+        prot.S.EncryptedDns = id; prot.Save(); prot.ApplyEncryptedUpstream();
+        EncDnsNow.Text = id == "Off" ? "" : $"Using {DohUpstream.Find(id)?.Name}. Takes effect immediately while protection is on.";
+    }
     void Cname_Click(object sender, RoutedEventArgs e) { prot.S.CnameCheck = CnameChk.IsChecked == true; prot.Save(); }
     void Mode_Click(object sender, RoutedEventArgs e) { prot.S.BlockMode = ModeNx.IsChecked == true ? "Nxdomain" : "NullIp"; prot.Save(); }
 

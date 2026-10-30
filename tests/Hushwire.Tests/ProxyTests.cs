@@ -18,7 +18,7 @@ public sealed class ProxyHarness : IDisposable
     public int ProxyPort;
     public bool Active = true;
 
-    public ProxyHarness(FilterSnapshot? snapshot = null, bool startUpstream = true, int[]? attemptsMs = null)
+    public ProxyHarness(FilterSnapshot? snapshot = null, bool startUpstream = true, int[]? attemptsMs = null, bool secureDns = false)
     {
         if (startUpstream) _ = Task.Run(Serve);
         else upstream.Dispose();
@@ -28,6 +28,7 @@ public sealed class ProxyHarness : IDisposable
         {
             Snapshot = () => snapshot ?? FilterSnapshot.Empty,
             Active = () => Active,
+            BlockSecureDns = () => secureDns,
             Upstreams = () => [IPAddress.Loopback],
             UpstreamPort = up,
             UdpAttemptsMs = attemptsMs ?? [200, 200, 400],

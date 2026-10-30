@@ -51,7 +51,7 @@ a certificate from a private CA, forwards each request to the real site, and rem
 
 ## Privacy and safety
 
-- **This program will not transfer any information to other networked systems unless specifically requested by the user.** There is no telemetry, no account, no cloud and no update check. The only network connections Hushwire makes are DNS to your chosen upstream and downloads from the list URLs you enabled. Statistics and the activity log stay on this PC
+- **This program will not transfer any information to other networked systems unless specifically requested by the user.** There is no telemetry, no account, no cloud and no update check. The only network connections Hushwire makes are DNS to your chosen upstream (or, only if you turn on *Settings → Secure DNS → encrypted upstream*, HTTPS to the DNS-over-HTTPS provider you pick: Cloudflare, Quad9 or Google, reached by built-in address with normal certificate checks) and downloads from the list URLs you enabled. Statistics and the activity log stay on this PC
   (`%ProgramData%\Hushwire`, administrators only). The log records blocked lookups (allowed ones only if you switch that on); clear it any time.
 - List downloads require HTTPS and normal certificate validation; redirects to non-HTTPS are refused. Lists are parsed as data only. Settings and imports are validated; malformed values are dropped rather than trusted.
 - The DNS safety net (journal, watchdog, boot task, repair shortcut, `--restore`) exists because pointing DNS at a program that isn't running would break the internet.
@@ -100,3 +100,10 @@ behaviour; Windows 10.
 
 **Planned:** a background Windows service with an unprivileged UI, a wizard-style installer, automatic updates, DNS-over-HTTPS upstreams, optional Windows Filtering Platform enforcement against DNS bypass,
 SQLite activity history, code signing.
+
+## Secure DNS
+
+Two opt-in settings under *Settings → Secure DNS*:
+
+- **Stop browsers from bypassing Hushwire.** Chrome, Edge and Firefox can switch to their own encrypted DNS and skip the system resolver. When this is on, Hushwire answers Firefox's canary name (`use-application-dns.net`) and the well-known DoH provider hostnames as "does not exist". Browsers in their default (automatic) mode then keep using the system DNS. A browser forced into *strict* secure-DNS mode shows an error instead, and software that deliberately talks to those providers (for example Cloudflare WARP) can be affected, so it is off by default. Your own allow rules override it.
+- **Encrypted upstream.** Allowed lookups are sent to a DNS-over-HTTPS server (RFC 8484) instead of in plain text. The provider is contacted by built-in address, so no DNS lookup is needed to find it, and its certificate is verified. If it doesn't answer within 4 seconds, or answers wrongly (not a response, or for a different question), Hushwire falls back to your ordinary upstream so DNS keeps working behind a captive portal or VPN. The diagnostics page shows how many lookups were answered and how many fell back. The provider you choose sees your lookups instead of your network.

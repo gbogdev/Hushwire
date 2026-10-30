@@ -40,7 +40,7 @@ answering their DNS lookups itself. It lives in the tray, uses about as much CPU
 |---|---|
 | 🔒 **No private data collected** | Hushwire does not collect, store or send your personal data. The settings, counters and activity log it keeps never leave your PC. |
 | 👤 **No account** | Nothing to sign up for, nothing to log in to. |
-| 📡 **No telemetry, no cloud** | The only connections it makes are DNS to your own DNS server and downloads of the filter lists you enabled. |
+| 📡 **No telemetry, no cloud** | The only connections it makes are DNS to your own DNS server (or the encrypted DNS server you choose, if you turn that on) and downloads of the filter lists you enabled. |
 | 🧾 **Open source** | GPL-3.0. Read it, build it, check it. |
 
 ## Features
@@ -55,6 +55,7 @@ answering their DNS lookups itself. It lives in the tray, uses about as much CPU
 | 📊 **Dashboard** | Lookups and blocks (today and all time), by category and list, top domains, and which app asked. |
 | 🧯 **Fails safe** | Your DNS settings are restored on turn-off, exit, crash and reboot. Windows Update and other system domains can't be blocked. |
 | ⚡ **Light and fast** | About 0.5 ms extra per lookup, about 0.1 % of one core when idle, about 160 MB with over a million rules. |
+| 🔐 **Secure DNS (optional)** | Stop browsers from bypassing the filter with their own encrypted DNS, and send your lookups to an encrypted DNS-over-HTTPS server (Cloudflare, Quad9 or Google) with automatic fallback. |
 | 📺 **YouTube & Twitch (optional)** | An opt-in, local in-page ad filter. Off by default. |
 
 ## Screenshots
@@ -121,7 +122,7 @@ The optional YouTube/Twitch filter covers those two sites, and it is experimenta
 <details>
 <summary><b>Why do some ads still show in my browser?</b></summary>
 
-Browsers with their own "Secure DNS" / DNS over HTTPS setting, apps with hard-coded DNS servers, and a VPN's DNS bypass any system DNS filter. **About & diagnostics** shows which adapters are covered.
+Browsers with their own "Secure DNS" / DNS over HTTPS setting, apps with hard-coded DNS servers, and a VPN's DNS bypass any system DNS filter. Turn on **Settings → Secure DNS** to tell browsers in their default mode to keep using Hushwire (a browser forced into strict mode will show an error instead, so turn it off if that happens). **About & diagnostics** shows which adapters are covered.
 </details>
 
 <details>

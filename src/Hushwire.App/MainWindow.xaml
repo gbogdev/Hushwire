@@ -210,6 +210,16 @@
             <TextBlock x:Name="UpstreamNow" Style="{StaticResource MutedText}" Margin="0,8,0,0" FontSize="12"/>
           </StackPanel></Border>
           <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Secure DNS" Style="{StaticResource H2}"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
+              Text="Some browsers switch to their own encrypted DNS and skip Hushwire entirely. This option tells them not to (it answers the names they use for that as “does not exist”). A browser forced into strict secure-DNS mode will show an error instead; turn this off if that happens."/>
+            <CheckBox x:Name="SecureDnsChk" Content="Stop browsers from bypassing Hushwire with their own secure DNS" Click="SecureDns_Click"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,14,0,6"
+              Text="Encrypted upstream: send allowed lookups to a DNS-over-HTTPS server so your network can't read them. If it doesn't answer, Hushwire falls back to ordinary DNS so nothing breaks. The server you pick sees your lookups instead."/>
+            <ComboBox x:Name="EncDnsBox" HorizontalAlignment="Left" MinWidth="300" SelectionChanged="EncDns_Changed" DisplayMemberPath="Value" SelectedValuePath="Key"/>
+            <TextBlock x:Name="EncDnsNow" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
             <TextBlock Text="YouTube &amp; Twitch ads inside the page (advanced)" Style="{StaticResource H2}"/>
             <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
               Text="DNS blocking can't remove these ads because they come from the same servers as the video. This option makes Hushwire act as a local go-between for YouTube and Twitch only: it removes the ad data from the player information before your browser sees it. It needs a certificate that Hushwire creates and installs on this PC; that certificate can only vouch for youtube.com and ttvnw.net, and its key never leaves this machine. Works in Chrome, Edge and other Windows-certificate browsers (not Firefox). It's a cat-and-mouse game: YouTube and Twitch change their code, so it can stop working without warning."/>

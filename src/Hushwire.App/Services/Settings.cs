@@ -56,6 +56,10 @@ public sealed class Settings
     public bool LogAllowed { get; set; }
     public bool StartWithWindows { get; set; }
     public bool CnameCheck { get; set; } = true;
+    /// <summary>Opt-in: answer the names browsers use to switch on their own encrypted DNS as "does not exist", so they keep using Hushwire.</summary>
+    public bool BlockSecureDns { get; set; }
+    /// <summary>"Off", or the id of a built-in DNS-over-HTTPS provider (cloudflare, quad9, google).</summary>
+    public string EncryptedDns { get; set; } = "Off";
     /// <summary>Opt-in: filter YouTube/Twitch ads inside the page (needs the local certificate).</summary>
     public bool AdFilter { get; set; }
     public List<ListSub> Lists { get; set; } = [];
@@ -111,6 +115,7 @@ public static class SettingsStore
         s.UserBlock = s.UserBlock.Select(Domain.Normalize).OfType<string>().Distinct().ToList();
         s.ExemptApps = s.ExemptApps.Where(p => p.Length < 520).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (s.BlockMode is not ("NullIp" or "Nxdomain")) s.BlockMode = "NullIp";
+        if (s.EncryptedDns != "Off" && DohUpstream.Find(s.EncryptedDns) is null) s.EncryptedDns = "Off";
     }
 
     static readonly object saveGate = new();

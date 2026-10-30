@@ -191,6 +191,7 @@ public sealed class Protection : IDisposable
         RedirectIpv6 = () => adFilter.Ipv6,
         Mode = () => S.Mode,
         CnameCheck = () => S.CnameCheck,
+        BlockSecureDns = () => S.BlockSecureDns,
         HasExemptApps = () => exempt.Count > 0,
         IsExemptApp = (r, tcp) => Attribution.Resolve(r, tcp) is { Direct: true } a && exempt.Contains(a.Path),
         OnQuery = e => channel.Writer.TryWrite((e, SafeResolve(e))),
@@ -224,6 +225,7 @@ public sealed class Protection : IDisposable
                     throw new InvalidOperationException($"Port {Port} is already in use by {who}. Close it (or stop Internet Connection Sharing) and try again.");
                 }
                 proxy = p;
+                ApplyEncryptedUpstream();
 
                 if (!Dev)
                 {
@@ -405,8 +407,22 @@ public sealed class Protection : IDisposable
 
     volatile Dictionary<string, (string Name, string Category)> listInfo = new();   // refreshed whenever the lists change; read per query event
 
-    public string ListName(string? id) => id == "user" ? "Your blocklist" : id is not null && listInfo.TryGetValue(id, out var i) ? i.Name : id ?? "";
-    string Category(string? id) => id == "user" ? "Your rules" : id is not null && listInfo.TryGetValue(id, out var i) ? i.Category : "Other";
+    /// <summary>Starts, switches or stops the encrypted upstream to match the setting. Safe to call at any time.</summary>
+    public void ApplyEncryptedUpstream()
+    {
+        var p = proxy;
+        if (p is null) return;
+        var want = DohUpstream.Find(S.EncryptedDns);
+        if (p.Doh?.Provider == want) return;
+        var old = p.Doh;
+        p.Doh = want is null ? null : new DohUpstream(want);
+        old?.Dispose();
+        p.Cache.Clear();
+        Raise();
+    }
+
+    public string ListName(string? id) => id == "secure-dns" ? "Secure-DNS bypass protection" : id == "user" ? "Your blocklist" : id is not null && listInfo.TryGetValue(id, out var i) ? i.Name : id ?? "";
+    string Category(string? id) => id == "secure-dns" ? "Secure DNS" : id == "user" ? "Your rules" : id is not null && listInfo.TryGetValue(id, out var i) ? i.Category : "Other";
 
     // Resolved on the query path: client sockets are often short-lived, so waiting would lose the owner.
     static AppInfo? SafeResolve(QueryEvent e) { try { return Attribution.Resolve(e.Remote, e.Tcp); } catch { return null; } }
@@ -508,6 +524,13 @@ public sealed class Protection : IDisposable
                 if (bl is { } b && b.nullIp) Ok($"Blocking works ({sample} → 0.0.0.0)"); else Bad($"{sample} should be blocked but was not");
             }
         }
+        Info(S.BlockSecureDns ? "Secure-DNS bypass protection: on (browsers are told to keep using Hushwire)" : "Secure-DNS bypass protection: off — browsers with their own secure DNS can bypass filtering (Settings → Secure DNS)");
+        if (proxy?.Doh is { } doh)
+        {
+            if (doh.Failed > 0 && doh.Succeeded == 0) Bad($"Encrypted upstream ({doh.Provider.Name}) is not answering: {doh.LastError}. Falling back to ordinary DNS ({proxy.DohFallbacks:N0} lookups so far).");
+            else Ok($"Encrypted upstream: {doh.Provider.Name} ({doh.Succeeded:N0} answered, {proxy.DohFallbacks:N0} fell back to ordinary DNS)");
+        }
+        else Info("Encrypted upstream: off — lookups to your upstream DNS are not encrypted (Settings → Secure DNS)");
         if (!Dev && S.AdFilter)
         {
             if (adFilter.Running) Ok($"YouTube/Twitch ad filter is running (certificate {(AdFilterCertificateInstalled ? "installed" : "MISSING from the trust store")})");
