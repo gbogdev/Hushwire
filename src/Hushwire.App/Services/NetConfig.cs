@@ -18,8 +18,27 @@ namespace Hushwire.App;
 /// Points adapter DNS at the local proxy and puts it back. The journal is written BEFORE any change, restore only touches
 /// adapters that still point at us, and nothing else (firewall, proxies, hosts, VPN adapters) is modified.
 /// </summary>
+/// <summary>The Windows calls NetConfig makes. A seam so the apply/restore logic can be tested without touching real adapters.</summary>
+public interface INetBackend
+{
+    bool TryApply(List<AdapterState> adapters, bool ipv6);
+    bool TryRestore(Journal journal);
+    Task<(int Code, string Output)> RunPowerShellAsync(string script);
+}
+
+sealed class WindowsNetBackend : INetBackend
+{
+    public bool TryApply(List<AdapterState> adapters, bool ipv6) => NativeDns.TryApply(adapters, ipv6);
+    public bool TryRestore(Journal journal) => NativeDns.TryRestore(journal);
+    public Task<(int Code, string Output)> RunPowerShellAsync(string script) => Ps.RunAsync(script);
+}
+
 public sealed class NetConfig
 {
+    readonly INetBackend backend;
+    public NetConfig() : this(new WindowsNetBackend()) { }
+    public NetConfig(INetBackend backend) => this.backend = backend;
+
     public bool HasJournal => File.Exists(Paths.JournalFile);
     public IReadOnlyList<IPAddress> Upstreams { get; private set; } = [];
     /// <summary>How the last DNS change was made: shown in diagnostics, so a slow fallback is visible.</summary>
@@ -100,9 +119,9 @@ public sealed class NetConfig
     public async Task ApplyAsync(IEnumerable<AdapterState> adapters, bool ipv6)
     {
         var list = adapters.ToList();
-        if (NativeDns.TryApply(list, ipv6)) { LastMethod = "Windows API"; return; }   // milliseconds; anything unexpected falls through to PowerShell
+        if (backend.TryApply(list, ipv6)) { LastMethod = "Windows API"; return; }   // milliseconds; anything unexpected falls through to PowerShell
         LastMethod = "PowerShell (the direct API was not accepted)";
-        var (code, output) = await Ps.RunAsync(NetScripts.Apply(list, ipv6)).ConfigureAwait(false);
+        var (code, output) = await backend.RunPowerShellAsync(NetScripts.Apply(list, ipv6)).ConfigureAwait(false);
         if (code != 0) throw new InvalidOperationException("Could not change DNS settings: " + output.Trim());
     }
 
@@ -112,11 +131,11 @@ public sealed class NetConfig
         if (!HasJournal) return;
         var j = Load();
         if (j is null) { if (File.Exists(Paths.JournalFile)) File.Move(Paths.JournalFile, Paths.JournalFile + ".corrupt", true); return; }
-        if (NativeDns.TryRestore(j)) LastMethod = "Windows API";
+        if (backend.TryRestore(j)) LastMethod = "Windows API";
         else
         {
             LastMethod = "PowerShell (the direct API was not accepted)";
-            var (code, output) = await Ps.RunAsync(NetScripts.Restore(j)).ConfigureAwait(false);
+            var (code, output) = await backend.RunPowerShellAsync(NetScripts.Restore(j)).ConfigureAwait(false);
             if (code != 0) throw new InvalidOperationException("Could not restore DNS settings: " + output.Trim());
         }
         File.Delete(Paths.JournalFile);

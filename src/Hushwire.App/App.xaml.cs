@@ -103,7 +103,7 @@ public partial class App : Application
         var quitEvent = Lifecycle.CreateQuitEvent(dev);     // the installer signals this to close a running copy cleanly
         _ = Task.Run(() => { while (quitEvent.WaitOne()) Dispatcher.BeginInvoke(() => QuitNow()); });
 
-        DispatcherUnhandledException += (_, a) => { Log(a.Exception); a.Handled = true; };
+        DispatcherUnhandledException += (_, a) => { Log(a.Exception); a.Handled = true; Tell(a.Exception); };
         AppDomain.CurrentDomain.UnhandledException += (_, a) => { Log(a.ExceptionObject as Exception); prot?.ShutdownRestore(); };
         SessionEnding += (_, _) => { Quitting = true; prot?.ShutdownRestore(); };
 
@@ -133,9 +133,18 @@ public partial class App : Application
         }
     }
 
-    static void Log(Exception? e)
+    public static readonly RotatingLog ErrorLog = new(Path.Combine(Paths.Dir, "error.log"), 512 * 1024);
+
+    static void Log(Exception? e) => ErrorLog.Write(e);
+
+    static DateTime lastNotice = DateTime.MinValue;
+
+    /// <summary>Tells the user something failed (at most once a minute, so a repeating fault can't bury them in dialogs).</summary>
+    static void Tell(Exception e)
     {
-        try { File.AppendAllText(Path.Combine(Paths.Dir, "error.log"), $"{DateTime.Now:s} {e}\n\n"); } catch { }
+        if (DateTime.UtcNow - lastNotice < TimeSpan.FromMinutes(1)) return;
+        lastNotice = DateTime.UtcNow;
+        MessageBox.Show($"Something went wrong, but Hushwire is still running.\n\n{e.Message}\n\nDetails: About & diagnostics → Save report.", "Hushwire", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     /// <summary>Shows the dashboard, recreating the window if it was ever closed for real.</summary>

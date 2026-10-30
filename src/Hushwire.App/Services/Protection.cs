@@ -521,6 +521,23 @@ public sealed class Protection : IDisposable
         return r;
     }
 
+    /// <summary>Everything useful for a bug report, with addresses and the Windows user name masked. Contains no browsing data and none of your rules.</summary>
+    public async Task<string> BuildReportAsync(RotatingLog log)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"Hushwire {typeof(Protection).Assembly.GetName().Version?.ToString(3)}  ·  {System.Runtime.InteropServices.RuntimeInformation.OSDescription}  ·  {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
+        sb.AppendLine($"State: {State} {Detail}  ·  rules: {snapshot.RuleCount:N0}  ·  your rules: {snapshot.UserRuleCount}  ·  block mode: {S.BlockMode}  ·  CNAME check: {S.CnameCheck}");
+        sb.AppendLine($"YouTube/Twitch filter: {AdFilterStatus}{(AdFilterError.Length > 0 ? " (" + AdFilterError + ")" : "")}  ·  DNS last changed via: {Net.LastMethod}");
+        foreach (var l in S.Lists.Where(l => l.Enabled))
+            sb.AppendLine($"  list {l.Name}: {l.RuleCount:N0} rules, last success {(l.LastSuccessUtc?.ToString("u") ?? "never")}{(l.LastError is null ? "" : ", error: " + l.LastError)}");
+        sb.AppendLine();
+        foreach (var line in await DiagnoseAsync()) sb.AppendLine(line);
+        sb.AppendLine().AppendLine("--- recent errors (newest last) ---");
+        var tail = log.Tail();
+        sb.AppendLine(tail.Length > 0 ? tail : "(none)");
+        return Redactor.Redact(sb.ToString());
+    }
+
     async Task<(int rcode, bool nullIp)?> Probe(string name)
     {
         try

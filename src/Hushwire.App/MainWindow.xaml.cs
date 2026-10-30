@@ -521,6 +521,14 @@ public partial class MainWindow : Window
     void License_Click(object sender, RoutedEventArgs e) => OpenBundled("LICENSE.txt", "https://www.gnu.org/licenses/gpl-3.0.html");
     void Notices_Click(object sender, RoutedEventArgs e) => OpenBundled("THIRD_PARTY_NOTICES.md", "https://github.com/gbogdev/Hushwire/blob/main/THIRD_PARTY_NOTICES.md");
 
+    async void SaveReport_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new SaveFileDialog { Filter = "Text files|*.txt", FileName = $"hushwire-report-{DateTime.Now:yyyyMMdd-HHmm}.txt" };
+        if (dlg.ShowDialog(this) != true) return;
+        try { await File.WriteAllTextAsync(dlg.FileName, await prot.BuildReportAsync(App.ErrorLog)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { MessageBox.Show(this, "Could not save the report: " + ex.Message, "Hushwire"); }
+    }
+
     async void Diag_Click(object sender, RoutedEventArgs e)
     {
         DiagList.ItemsSource = new[] { "Running checks…" };
