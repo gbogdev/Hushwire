@@ -20,7 +20,7 @@ public sealed record ActivityRow(DateTime Time, string Domain, string Type, stri
 }
 
 /// <summary>Owns the proxy, the filter snapshot, list updates and the DNS takeover. One instance per process.</summary>
-public sealed class Protection : IDisposable
+public sealed partial class Protection : IDisposable
 {
     public Settings S { get; }
     public Stats Stats { get; }
@@ -75,6 +75,7 @@ public sealed class Protection : IDisposable
         _ = Task.Run(ConsumeAsync);
         if (!Dev) _ = Task.Run(Ps.CleanInstalledLeftovers);
         saveTimer = new Timer(_ => Stats.Save(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        StartHousekeeping();
         NetworkChange.NetworkAddressChanged += OnNetworkChanged;
 
         if (!Dev && Net.HasJournal)
@@ -92,7 +93,7 @@ public sealed class Protection : IDisposable
     public async Task RebuildAsync()
     {
         var enabled = S.Lists.Where(l => l.Enabled).ToList();
-        var allow = S.UserAllow.ToList(); var block = S.UserBlock.ToList();
+        var allow = EffectiveAllow(); var block = S.UserBlock.ToList();
         listInfo = S.Lists.ToDictionary(l => l.Id, l => (l.Name, l.Category));
         var snap = await Task.Run(() =>
         {
@@ -119,7 +120,7 @@ public sealed class Protection : IDisposable
     public async Task ApplyRulesAsync()
     {
         Save();
-        snapshot = snapshot.WithUserRules(S.UserAllow.ToList(), S.UserBlock.ToList());
+        snapshot = snapshot.WithUserRules(EffectiveAllow(), S.UserBlock.ToList());
         proxy?.Cache.Clear();
         if (!Dev && proxy is not null) DnsApi.Flush();
         Raise();
@@ -154,6 +155,9 @@ public sealed class Protection : IDisposable
                 finally { slots.Release(); }
             }));
             Save();
+            var failedLists = due.Where(l => l.LastError is not null).ToList();
+            if (failedLists.Count > 0)
+                Notify("lists", "Filter list update failed", failedLists.Count == 1 ? $"{failedLists[0].Name} could not be updated. The previous copy is still in use." : $"{failedLists.Count} lists could not be updated. The previous copies are still in use.");
             if (changed || snapshot.RuleCount == 0) await RebuildAsync();
             else { ListStatus = $"{snapshot.RuleCount:N0} rules from {S.Lists.Count(l => l.Enabled)} lists"; Raise(); }
             if (changed && proxy is not null && !Dev) DnsApi.Flush();
@@ -288,6 +292,7 @@ public sealed class Protection : IDisposable
     public void Resume()
     {
         if (State != ProtectionState.Paused) return;
+        if (pausedBySchedule) { pausedBySchedule = false; scheduleSuppressed = true; }     // you resumed during a scheduled pause: leave it on until that window ends
         pauseTimer?.Dispose(); paused = false; PausedUntil = null;
         proxy?.Cache.Clear();
         if (!Dev) DnsApi.Flush();
@@ -433,6 +438,7 @@ public sealed class Protection : IDisposable
         {
             try
             {
+                if (e.Remote.Port == 1 && IPAddress.IsLoopback(e.Remote.Address)) continue;      // Hushwire's own self-check lookups are not your traffic
                 var d = e.Decision;
                 bool cname = d.Origin == Origin.Cname;
                 string source = d.Blocked ? (cname ? $"{ListName(d.ListId)} (via CNAME {d.Rule})" : ListName(d.ListId))
@@ -524,6 +530,7 @@ public sealed class Protection : IDisposable
                 if (bl is { } b && b.nullIp) Ok($"Blocking works ({sample} → 0.0.0.0)"); else Bad($"{sample} should be blocked but was not");
             }
         }
+        if (!Dev && S.PauseHotkey) { if (App.HotkeyOk) Ok("Hotkey Ctrl+Alt+H pauses or resumes protection"); else Info("Hotkey Ctrl+Alt+H could not be registered (another program may be using it)"); }
         Info(S.BlockSecureDns ? "Secure-DNS bypass protection: on (browsers are told to keep using Hushwire)" : "Secure-DNS bypass protection: off — browsers with their own secure DNS can bypass filtering (Settings → Secure DNS)");
         if (proxy?.Doh is { } doh)
         {
@@ -578,7 +585,7 @@ public sealed class Protection : IDisposable
 
     public void Dispose()
     {
-        cts.Cancel(); pauseTimer?.Dispose(); updateTimer?.Dispose(); saveTimer?.Dispose();
+        cts.Cancel(); pauseTimer?.Dispose(); updateTimer?.Dispose(); saveTimer?.Dispose(); houseTimer?.Dispose();
         proxy?.Dispose();
     }
 }

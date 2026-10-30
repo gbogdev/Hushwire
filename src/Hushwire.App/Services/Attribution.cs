@@ -54,6 +54,19 @@ public static class Attribution
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)] static extern bool QueryFullProcessImageNameW(IntPtr h, int flags, StringBuilder sb, ref int size);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
 
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out int pid);
+
+    /// <summary>Display name of the program whose window is in front, or null (none, or it is Hushwire itself).</summary>
+    public static string? ForegroundName()
+    {
+        var h = GetForegroundWindow();
+        if (h == IntPtr.Zero) return null;
+        GetWindowThreadProcessId(h, out int pid);
+        if (pid <= 0 || pid == Environment.ProcessId) return null;
+        try { return Describe(pid)?.Name; } catch { return null; }
+    }
+
     public static string? ImagePath(int pid)
     {
         var h = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, pid);

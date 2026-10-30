@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using Hushwire.Core;
 using Forms = System.Windows.Forms;
@@ -46,7 +47,7 @@ public static class IconFactory
         using var bmp = new Bitmap(size, size);
         using (var g = Graphics.FromImage(bmp))
         {
-            // the Hushwire shield and check mark, filled with the status colour (green on, amber paused, red problem, grey off)
+            // the Hushwire shield and arrow, filled with the status colour (green on, amber paused, red problem, grey off)
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             float S(float v) => v * size;
             using var path = new System.Drawing.Drawing2D.GraphicsPath();
@@ -58,8 +59,9 @@ public static class IconFactory
             path.CloseFigure();
             using var br = new SolidBrush(Color.FromArgb(c.R, c.G, c.B));
             g.FillPath(br, path);
-            using var pen = new Pen(Color.White, Math.Max(1.6f, size * 0.11f)) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
-            g.DrawLines(pen, new[] { new PointF(S(.29f), S(.50f)), new PointF(S(.44f), S(.65f)), new PointF(S(.72f), S(.34f)) });
+            using var pen = new Pen(Color.FromArgb(0x0F, 0x1A, 0x2B), Math.Max(1.6f, size * 0.11f)) { StartCap = System.Drawing.Drawing2D.LineCap.Round, EndCap = System.Drawing.Drawing2D.LineCap.Round, LineJoin = System.Drawing.Drawing2D.LineJoin.Round };
+            g.DrawLine(pen, S(.5f), S(.74f), S(.5f), S(.34f));
+            g.DrawLines(pen, new[] { new PointF(S(.33f), S(.51f)), new PointF(S(.5f), S(.34f)), new PointF(S(.67f), S(.51f)) });
         }
         var h = bmp.GetHicon();
         var icon = (Icon)Icon.FromHandle(h).Clone();
@@ -114,10 +116,14 @@ public partial class App : Application
             win = new MainWindow(prot);
             BuildTray();
             prot.Changed += () => Dispatcher.BeginInvoke(UpdateTray);
+            prot.Notice += (title, msg) => Dispatcher.BeginInvoke(() => tray?.ShowBalloonTip(6000, title, msg, Forms.ToolTipIcon.Info));
             if (!startHidden) win.Show();
             UpdateTray();
             await prot.InitAsync();
+            ApplyHotkey();
             int si = Array.IndexOf(e.Args, "--snapshot");
+            if (si < 0 && !prot.S.FirstRunDone && !startHidden) new WizardWindow(prot) { Owner = win }.ShowDialog();
+            if (si >= 0 && !prot.S.FirstRunDone) { prot.S.FirstRunDone = true; }
             if (si >= 0 && si + 1 < e.Args.Length)
             {
                 await Task.Delay(8000);
@@ -131,6 +137,38 @@ public partial class App : Application
             MessageBox.Show("Hushwire could not start:\n" + ex.Message, "Hushwire", MessageBoxButton.OK, MessageBoxImage.Error);
             Quitting = true; prot?.ShutdownRestore(); Shutdown();
         }
+    }
+
+    // ---- Ctrl+Alt+H: pause or resume from anywhere (a message-only window receives the hot key)
+    const int WM_HOTKEY = 0x0312, HotkeyId = 1;
+    HwndSource? hotkeySource;
+    bool hotkeyRegistered;
+    /// <summary>Whether Ctrl+Alt+H is currently registered (another program may already own it).</summary>
+    public static bool HotkeyOk { get; private set; }
+
+    [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint vk);
+    [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr h, int id);
+
+    /// <summary>Registers or releases the hot key to match the setting.</summary>
+    public void ApplyHotkey()
+    {
+        try
+        {
+            bool want = prot is { Dev: false } && prot.S.PauseHotkey;
+            if (hotkeyRegistered && !want) { UnregisterHotKey(hotkeySource!.Handle, HotkeyId); hotkeyRegistered = false; HotkeyOk = false; }
+            if (!want || hotkeyRegistered) return;
+            if (hotkeySource is null)
+            {
+                hotkeySource = new HwndSource(new HwndSourceParameters("HushwireHotkey") { ParentWindow = new IntPtr(-3), Width = 0, Height = 0 });   // HWND_MESSAGE
+                hotkeySource.AddHook((IntPtr h, int msg, IntPtr w, IntPtr l, ref bool handled) =>
+                {
+                    if (msg == WM_HOTKEY && w.ToInt32() == HotkeyId) { prot?.TogglePauseHotkey(); handled = true; }
+                    return IntPtr.Zero;
+                });
+            }
+            hotkeyRegistered = HotkeyOk = RegisterHotKey(hotkeySource.Handle, HotkeyId, 0x0001 | 0x0002 | 0x4000, 'H');     // Alt | Ctrl | no auto-repeat
+        }
+        catch (Exception ex) { Log(ex); HotkeyOk = false; }
     }
 
     public static readonly RotatingLog ErrorLog = new(Path.Combine(Paths.Dir, "error.log"), 512 * 1024);
@@ -173,6 +211,8 @@ public partial class App : Application
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(toggleItem);
         menu.Items.Add(new Forms.ToolStripMenuItem("Pause for 30 minutes", null, (_, _) => prot!.Pause(TimeSpan.FromMinutes(30))));
+        menu.Items.Add(new Forms.ToolStripMenuItem("Pause until I restart", null, (_, _) => prot!.PauseUntilRestart()));
+        menu.Items.Add(new Forms.ToolStripMenuItem("Something broke…", null, (_, _) => { ShowMain(); win?.OpenFixer(); }));
         menu.Items.Add(new Forms.ToolStripMenuItem("Open dashboard", null, (_, _) => ShowMain()));
         menu.Items.Add(new Forms.ToolStripMenuItem("Update filter lists", null, async (_, _) => await prot!.UpdateListsAsync(true)));
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -193,10 +233,10 @@ public partial class App : Application
         var old = tray.Icon;
         tray.Icon = IconFactory.Make(st switch
         {
-            ProtectionState.On => System.Windows.Media.Color.FromRgb(0x2E, 0xCC, 0x71),
-            ProtectionState.Paused => System.Windows.Media.Color.FromRgb(0xF5, 0xA5, 0x24),
-            ProtectionState.Error => System.Windows.Media.Color.FromRgb(0xE5, 0x48, 0x4D),
-            _ => System.Windows.Media.Color.FromRgb(0x8B, 0x93, 0xA1),
+            ProtectionState.On => System.Windows.Media.Color.FromRgb(0x3E, 0xCF, 0xB2),
+            ProtectionState.Paused => System.Windows.Media.Color.FromRgb(0xF5, 0xB5, 0x4A),
+            ProtectionState.Error => System.Windows.Media.Color.FromRgb(0xF0, 0x61, 0x6D),
+            _ => System.Windows.Media.Color.FromRgb(0x83, 0x93, 0xAD),
         });
         old?.Dispose();
     }

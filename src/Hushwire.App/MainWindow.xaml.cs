@@ -63,7 +63,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         prot = p;
-        Icon = IconFactory.Source(Color.FromRgb(0x4F, 0x8C, 0xFF));
+        Icon = IconFactory.Source(Color.FromRgb(0x3E, 0xCF, 0xB2));
         AboutVer.Text = $"Hushwire {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}  ·  data folder: {Paths.Dir}";
         timer.Tick += (_, _) => Refresh();
         IsVisibleChanged += (_, _) => { if (IsVisible) { trim.Stop(); ResetCaches(); timer.Start(); Refresh(); } else { timer.Stop(); ReleaseUi(); trim.Start(); } };
@@ -140,6 +140,7 @@ public partial class MainWindow : Window
         var st = prot.State;
         var brush = (Brush)FindResource(st switch { ProtectionState.On => "Good", ProtectionState.Paused => "Warn", ProtectionState.Error => "Bad", _ => "Muted" });
         Dot.Fill = brush;
+        RefreshHealthLine();
         SideNote.Text = prot.Dev ? "Developer mode — DNS settings are not changed." : "";
         var ups = prot.ResolveUpstreams();
 
@@ -150,8 +151,8 @@ public partial class MainWindow : Window
                 HeroSub.Text = $"Filtering DNS lookups from every app on this PC · {prot.Snapshot.RuleCount:N0} rules" + (prot.Detail.Length > 0 ? $"\n{prot.Detail}" : "");
                 ToggleBtn.Content = "Turn off"; ToggleBtn.IsEnabled = true; PauseBtn.IsEnabled = true; break;
             case ProtectionState.Paused:
-                HeroTitle.Text = $"Paused until {prot.PausedUntil:t}"; HeroTitle.Foreground = brush;
-                HeroSub.Text = "Nothing is blocked while paused. Protection resumes automatically.";
+                HeroTitle.Text = prot.PausedUntil is { } until ? $"Paused until {until:t}" : "Paused"; HeroTitle.Foreground = brush;
+                HeroSub.Text = prot.PausedUntil is null ? $"Nothing is blocked while paused. {prot.Detail}" : "Nothing is blocked while paused. Protection resumes automatically.";
                 ToggleBtn.Content = "Resume"; ToggleBtn.IsEnabled = true; PauseBtn.IsEnabled = false; break;
             case ProtectionState.Starting:
                 HeroTitle.Text = "Starting…"; HeroTitle.Foreground = brush; HeroSub.Text = prot.Detail;
@@ -238,6 +239,7 @@ public partial class MainWindow : Window
 
     void RefreshRules()
     {
+        RefreshTimedNote();
         AllowBox.ItemsSource = prot.S.UserAllow.OrderBy(x => x).ToList();
         BlockBox.ItemsSource = prot.S.UserBlock.OrderBy(x => x).ToList();
     }
@@ -274,7 +276,7 @@ public partial class MainWindow : Window
     void PauseItem_Click(object sender, RoutedEventArgs e)
     {
         int m = int.Parse((string)((MenuItem)sender).Tag);
-        if (m == 0) prot.Resume(); else prot.Pause(TimeSpan.FromMinutes(m));
+        if (m == 0) prot.Resume(); else if (m < 0) prot.PauseUntilRestart(); else prot.Pause(TimeSpan.FromMinutes(m));
     }
 
     // ------------------------------------------------------------ activity
@@ -421,10 +423,11 @@ public partial class MainWindow : Window
         AutoStartChk.IsChecked = s.StartWithWindows; CnameChk.IsChecked = s.CnameCheck; LogAllowedChk.IsChecked = s.LogAllowed;
         (s.BlockMode == "Nxdomain" ? ModeNx : ModeNull).IsChecked = true;
         SecureDnsChk.IsChecked = s.BlockSecureDns;
-        if (EncDnsBox.ItemsSource is null)
-            EncDnsBox.ItemsSource = new[] { new KeyValuePair<string, string>("Off", "Off (use my normal DNS servers)") }
-                .Concat(DohUpstream.Providers.Select(p => new KeyValuePair<string, string>(p.Id, p.Name))).ToList();
-        loadingSettings = true; EncDnsBox.SelectedValue = s.EncryptedDns; loadingSettings = false;
+        LoadAssistSettingsUi();
+        if (EncDnsPanel.Children.Count == 0)
+            foreach (var (id, text) in new[] { ("Off", "Off (use my normal DNS servers)") }.Concat(DohUpstream.Providers.Select(p => (p.Id, p.Name))))
+                EncDnsPanel.Children.Add(new RadioButton { Content = text, Tag = id, GroupName = "enc" });
+        foreach (RadioButton rb in EncDnsPanel.Children) { rb.Click -= EncDns_Click; rb.IsChecked = (string)rb.Tag == s.EncryptedDns; rb.Click += EncDns_Click; }
         EncDnsNow.Text = s.EncryptedDns == "Off" ? "" : $"Using {DohUpstream.Find(s.EncryptedDns)?.Name}. Takes effect immediately while protection is on.";
         UpstreamIn.Text = s.UpstreamOverride;
         AdFilterChk.IsChecked = s.AdFilter;
@@ -487,11 +490,11 @@ public partial class MainWindow : Window
         RefreshAdFilterText();
     }
 
-    bool loadingSettings;
+
     void SecureDns_Click(object sender, RoutedEventArgs e) { prot.S.BlockSecureDns = SecureDnsChk.IsChecked == true; prot.Save(); prot.Proxy?.Cache.Clear(); if (!prot.Dev) DnsApi.Flush(); }
-    void EncDns_Changed(object sender, SelectionChangedEventArgs e)
+    void EncDns_Click(object sender, RoutedEventArgs e)
     {
-        if (loadingSettings || EncDnsBox.SelectedValue is not string id) return;
+        if (sender is not RadioButton { Tag: string id }) return;
         prot.S.EncryptedDns = id; prot.Save(); prot.ApplyEncryptedUpstream();
         EncDnsNow.Text = id == "Off" ? "" : $"Using {DohUpstream.Find(id)?.Name}. Takes effect immediately while protection is on.";
     }

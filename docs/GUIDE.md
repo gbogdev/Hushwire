@@ -101,6 +101,14 @@ behaviour; Windows 10.
 **Planned:** a background Windows service with an unprivileged UI, a wizard-style installer, automatic updates, DNS-over-HTTPS upstreams, optional Windows Filtering Platform enforcement against DNS bypass,
 SQLite activity history, code signing.
 
+## Everyday helpers
+
+- **Something broke?** Ranks the lookups blocked in the last 10 minutes (recency, whether the program in front asked, and a penalty for noisy repeated loops) and can allow one for an hour or permanently. Temporary allows are stored with an expiry time and removed on schedule, including after a restart.
+- **Self-check.** Every 10 minutes while protection is on (and on demand) Hushwire tests that a known ad domain is blocked, that normal sites resolve, that the filter is listening and that your adapters use it, then shows Protected, Partly protected or Not protected. If it gets worse you get a notification. Its test lookups are not counted in your statistics.
+- **Protection levels.** Light, Standard and Strict choose which built-in lists are on; your own lists are untouched.
+- **Schedules.** Rules with days and a time window (which may pass midnight) that pause protection or switch level. A pause beats a level; resuming yourself during a scheduled pause keeps protection on until that window ends. When a schedule switches level, the lists you had on are restored afterwards.
+- **Pause until I restart**, the **Ctrl+Alt+H** hotkey (pause 30 minutes, press again to resume) and Windows notifications can each be turned off in Settings.
+
 ## Secure DNS
 
 Two opt-in settings under *Settings → Secure DNS*:

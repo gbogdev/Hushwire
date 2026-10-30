@@ -38,25 +38,28 @@ answering their DNS lookups itself. It lives in the tray, uses about as much CPU
 
 |  |  |
 |---|---|
-| 🔒 **No private data collected** | Hushwire does not collect, store or send your personal data. The settings, counters and activity log it keeps never leave your PC. |
-| 👤 **No account** | Nothing to sign up for, nothing to log in to. |
-| 📡 **No telemetry, no cloud** | The only connections it makes are DNS to your own DNS server (or the encrypted DNS server you choose, if you turn that on) and downloads of the filter lists you enabled. |
-| 🧾 **Open source** | GPL-3.0. Read it, build it, check it. |
+| **No private data collected** | Hushwire does not collect, store or send your personal data. The settings, counters and activity log it keeps never leave your PC. |
+| **No account** | Nothing to sign up for, nothing to log in to. |
+| **No telemetry, no cloud** | The only connections it makes are DNS to your own DNS server (or the encrypted DNS server you choose, if you turn that on) and downloads of the filter lists you enabled. |
+| **Open source** | GPL-3.0. Read it, build it, check it. |
 
 ## Features
 
 | | |
 |---|---|
-| 🛡️ **Whole-PC blocking** | A local DNS filter covers every app, not just one browser. Blocked names fail instantly. |
-| 📚 **28 filter lists** | StevenBlack, EasyPrivacy and URLhaus on by default; HaGeZi, OISD, AdAway, Disconnect, phishing and malware lists one click away. Add your own `https://` lists. |
-| 🎮 **Games stay working** | Steam, Riot, Epic, Battle.net, EA, Ubisoft, Rockstar, Xbox and anti-cheat services are never blocked. |
-| ✋ **Your rules win** | Personal allow and block lists beat every list. A "why is this blocked?" check shows the exact rule. |
-| 🕵️ **Hidden trackers** | CNAME-cloaking detection catches trackers disguised as a site's own subdomain. |
-| 📊 **Dashboard** | Lookups and blocks (today and all time), by category and list, top domains, and which app asked. |
-| 🧯 **Fails safe** | Your DNS settings are restored on turn-off, exit, crash and reboot. Windows Update and other system domains can't be blocked. |
-| ⚡ **Light and fast** | About 0.5 ms extra per lookup, about 0.1 % of one core when idle, about 160 MB with over a million rules. |
-| 🔐 **Secure DNS (optional)** | Stop browsers from bypassing the filter with their own encrypted DNS, and send your lookups to an encrypted DNS-over-HTTPS server (Cloudflare, Quad9 or Google) with automatic fallback. |
-| 📺 **YouTube & Twitch (optional)** | An opt-in, local in-page ad filter. Off by default. |
+| **Whole-PC blocking** | A local DNS filter covers every app, not just one browser. Blocked names fail instantly. |
+| **28 filter lists** | StevenBlack, EasyPrivacy and URLhaus on by default; HaGeZi, OISD, AdAway, Disconnect, phishing and malware lists one click away. Add your own `https://` lists. |
+| **Games stay working** | Steam, Riot, Epic, Battle.net, EA, Ubisoft, Rockstar, Xbox and anti-cheat services are never blocked. |
+| **Your rules win** | Personal allow and block lists beat every list. A "why is this blocked?" check shows the exact rule. |
+| **Hidden trackers** | CNAME-cloaking detection catches trackers disguised as a site's own subdomain. |
+| **Dashboard** | Lookups and blocks (today and all time), by category and list, top domains, and which app asked. |
+| **Something broke?** | One button lists the blocked lookups most likely to blame, ranked, and allows one for an hour. The allow switches itself off again. |
+| **Self-check** | A plain "Protected / Partly protected / Not protected" status that tests blocking, your adapters and your upstream, and tells you when it changes. |
+| **Levels and schedules** | Light, Standard or Strict, and rules such as "pause while gaming" or "strict at night". |
+| **Fails safe** | Your DNS settings are restored on turn-off, exit, crash and reboot. Windows Update and other system domains can't be blocked. |
+| **Light and fast** | About 0.5 ms extra per lookup, about 0.1 % of one core when idle, about 160 MB with over a million rules. |
+| **Secure DNS (optional)** | Stop browsers from bypassing the filter with their own encrypted DNS, and send your lookups to an encrypted DNS-over-HTTPS server (Cloudflare, Quad9 or Google) with automatic fallback. |
+| **YouTube & Twitch (optional)** | An opt-in, local in-page ad filter. Off by default. |
 
 ## Screenshots
 
@@ -64,6 +67,8 @@ answering their DNS lookups itself. It lives in the tray, uses about as much CPU
 |---|---|
 | ![Activity log](docs/screenshots/activity.png) | ![Filter lists](docs/screenshots/lists.png) |
 | **Activity log**: every blocked lookup, the rule that caught it, and one-click allow or block | **Filter lists**: built-in lists, your own lists, safe automatic updates |
+| ![Settings](docs/screenshots/settings.png) | ![Allow / Block](docs/screenshots/rules.png) |
+| **Settings**: protection level, schedules, secure DNS and notifications | **Allow / Block**: your own rules beat every list, plus a "why is this blocked?" check |
 
 *Captured in developer mode with sample lookups, so the numbers are small.*
 
@@ -82,7 +87,7 @@ Check the download against `SHA256SUMS.txt` on the release page.
 
 ## Getting started
 
-1. **Install** (or run the portable exe). Windows asks for administrator rights, because Hushwire needs them to listen on port 53 and change adapter DNS.
+1. **Install** (or run the portable exe). A short first-run guide helps you choose a level and turn it on. Windows asks for administrator rights, because Hushwire needs them to listen on port 53 and change adapter DNS.
 2. Click **Turn on**. The first time, it downloads the default lists and points your network adapters at itself.
 3. Open **About & diagnostics → Run checks**. Green ticks mean it is listening, your adapter uses it, normal sites resolve and a known ad domain is blocked.
 
@@ -135,6 +140,12 @@ Windows Update, Defender, SmartScreen and connectivity checks are protected and 
 <summary><b>What if Hushwire crashes?</b></summary>
 
 Your original DNS settings are saved before anything changes and restored on turn-off, exit, crash (a watchdog process) and reboot (a boot-time task). The Start-menu shortcut **Hushwire – repair network settings** works even if the app itself is broken.
+</details>
+
+<details>
+<summary><b>What does the "Something broke?" button do?</b></summary>
+
+It looks at what was blocked in the last 10 minutes and ranks it: recent blocks first, and blocks asked for by the program you were just using ranked highest. You can allow one for an hour (it switches itself off, even after a restart) or permanently, or pause protection for 5 minutes to find out whether Hushwire is the cause at all.
 </details>
 
 <details>

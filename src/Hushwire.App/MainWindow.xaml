@@ -3,15 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Hushwire" Width="1080" Height="720" MinWidth="920" MinHeight="600"
         Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen" UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
-  <Grid>
+  <Grid Background="{StaticResource Bg}">
     <Grid.ColumnDefinitions><ColumnDefinition Width="210"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
     <!-- sidebar -->
-    <Border Background="{StaticResource Side}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
-      <DockPanel Margin="14,20,14,16">
-        <StackPanel DockPanel.Dock="Top" Margin="6,0,0,22" Orientation="Horizontal">
-          <Ellipse x:Name="Dot" Width="12" Height="12" Fill="{StaticResource Muted}" Margin="0,0,10,0"/>
-          <TextBlock Text="Hushwire" FontSize="20" FontWeight="SemiBold"/>
+    <Border Background="{StaticResource Side}">
+      <DockPanel Margin="14,22,14,16">
+        <StackPanel DockPanel.Dock="Top" Margin="6,0,0,26" Orientation="Horizontal">
+          <Image Source="pack://application:,,,/Assets/hushwire.ico" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0"/>
+          <TextBlock Text="Hushwire" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <Ellipse x:Name="Dot" Width="9" Height="9" Fill="{StaticResource Muted}" Margin="10,2,0,0" VerticalAlignment="Center"/>
         </StackPanel>
         <TextBlock x:Name="SideNote" DockPanel.Dock="Bottom" Style="{StaticResource MutedText}" FontSize="11" TextWrapping="Wrap" Margin="6,0"/>
         <StackPanel>
@@ -38,12 +39,14 @@
                 <TextBlock x:Name="HeroSub" Style="{StaticResource MutedText}" Margin="0,4,0,0" TextWrapping="Wrap"/>
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="FixBtn" Content="Something broke?" Style="{StaticResource Btn}" Margin="0,0,10,0" Click="Fix_Click" ToolTip="Find which blocked lookup is most likely causing a problem, and allow it for a while"/>
                 <Button x:Name="PauseBtn" Content="Pause ▾" Style="{StaticResource Btn}" Margin="0,0,10,0" Click="Pause_Click">
                   <Button.ContextMenu>
                     <ContextMenu>
                       <MenuItem Header="Pause for 5 minutes" Tag="5" Click="PauseItem_Click"/>
                       <MenuItem Header="Pause for 30 minutes" Tag="30" Click="PauseItem_Click"/>
                       <MenuItem Header="Pause for 1 hour" Tag="60" Click="PauseItem_Click"/>
+                      <MenuItem Header="Pause until I restart" Tag="-1" Click="PauseItem_Click"/>
                       <MenuItem x:Name="ResumeItem" Header="Resume now" Tag="0" Click="PauseItem_Click"/>
                     </ContextMenu>
                   </Button.ContextMenu>
@@ -52,6 +55,11 @@
               </StackPanel>
             </Grid>
           </Border>
+
+          <DockPanel Margin="6,12,0,0">
+            <Button Content="Check now" Style="{StaticResource Btn}" DockPanel.Dock="Right" Padding="12,5" FontSize="12" Click="Health_Click"/>
+            <TextBlock x:Name="HealthLine" Style="{StaticResource MutedText}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </DockPanel>
 
           <UniformGrid Columns="4" Margin="0,14,0,0">
             <Border Style="{StaticResource Card}" Margin="0,0,7,0"><StackPanel><TextBlock Text="DNS lookups" Style="{StaticResource MutedText}"/><TextBlock x:Name="TQueries" FontSize="30" FontWeight="SemiBold" Margin="0,6,0,2"/><TextBlock x:Name="TQueriesSub" Style="{StaticResource MutedText}" FontSize="12"/></StackPanel></Border>
@@ -157,6 +165,7 @@
               <DockPanel Margin="0,8,0,0"><Button Content="Remove" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="RemBlock_Click" Margin="8,0,0,0"/><Button Content="Add" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="AddBlock_Click" Margin="8,0,0,0"/><TextBox x:Name="BlockIn" KeyDown="BlockIn_KeyDown"/></DockPanel>
             </StackPanel></Border>
           </UniformGrid>
+          <TextBlock x:Name="TimedNote" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="2,10,0,0" Visibility="Collapsed"/>
           <Border Style="{StaticResource Card}" Margin="0,14,0,0"><StackPanel>
             <TextBlock Text="Why is this domain blocked (or not)?" Style="{StaticResource H2}"/>
             <DockPanel><Button Content="Check" Style="{StaticResource Btn}" DockPanel.Dock="Right" Click="Explain_Click" Margin="8,0,0,0"/><TextBox x:Name="ExplainIn" KeyDown="ExplainIn_KeyDown"/></DockPanel>
@@ -204,6 +213,26 @@
             <RadioButton x:Name="ModeNx" Content="“Domain does not exist” (NXDOMAIN)" GroupName="m" Click="Mode_Click"/>
           </StackPanel></Border>
           <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Protection level" Style="{StaticResource H2}"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,6" Text="Chooses which built-in filter lists are on. Your own lists are not changed."/>
+            <StackPanel x:Name="ProfilePanel"/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Schedules" Style="{StaticResource H2}"/>
+            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8" Text="Pause protection, or switch to another protection level, at set times (for example while gaming, or stricter at night). Resuming yourself during a scheduled pause keeps it on until that window ends."/>
+            <ListBox x:Name="SchedBox" MinHeight="64" MaxHeight="160"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+              <Button Content="Add schedule…" Style="{StaticResource Btn}" Click="AddSchedule_Click" Margin="0,0,8,0"/>
+              <Button Content="Remove" Style="{StaticResource Btn}" Click="RemoveSchedule_Click"/>
+            </StackPanel>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
+            <TextBlock Text="Notifications and shortcuts" Style="{StaticResource H2}"/>
+            <CheckBox x:Name="NotifyChk" Content="Show a Windows notification when something needs attention" Click="Notify_Click"/>
+            <CheckBox x:Name="HotkeyChk" Content="Press Ctrl+Alt+H anywhere to pause or resume protection" Click="Hotkey_Click"/>
+            <TextBlock Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0" Text="In the window: Ctrl+1 to Ctrl+7 switch pages."/>
+          </StackPanel></Border>
+          <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>
             <TextBlock Text="Upstream DNS" Style="{StaticResource H2}"/>
             <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8" Text="Allowed lookups are forwarded here. Leave empty to keep using the DNS servers Windows was already using (recommended — keeps work/VPN/captive-portal names working). Separate several addresses with spaces."/>
             <DockPanel><Button Content="Save" Style="{StaticResource Btn}" DockPanel.Dock="Right" Margin="8,0,0,0" Click="SaveUpstream_Click"/><TextBox x:Name="UpstreamIn"/></DockPanel>
@@ -216,7 +245,7 @@
             <CheckBox x:Name="SecureDnsChk" Content="Stop browsers from bypassing Hushwire with their own secure DNS" Click="SecureDns_Click"/>
             <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,14,0,6"
               Text="Encrypted upstream: send allowed lookups to a DNS-over-HTTPS server so your network can't read them. If it doesn't answer, Hushwire falls back to ordinary DNS so nothing breaks. The server you pick sees your lookups instead."/>
-            <ComboBox x:Name="EncDnsBox" HorizontalAlignment="Left" MinWidth="300" SelectionChanged="EncDns_Changed" DisplayMemberPath="Value" SelectedValuePath="Key"/>
+            <StackPanel x:Name="EncDnsPanel"/>
             <TextBlock x:Name="EncDnsNow" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
           </StackPanel></Border>
           <Border Style="{StaticResource Card}" Margin="0,12,0,0"><StackPanel>

@@ -58,6 +58,16 @@ public sealed class Settings
     public bool CnameCheck { get; set; } = true;
     /// <summary>Opt-in: answer the names browsers use to switch on their own encrypted DNS as "does not exist", so they keep using Hushwire.</summary>
     public bool BlockSecureDns { get; set; }
+    /// <summary>False until the first-run wizard has been finished or skipped. Existing installs (a settings file without this field) count as done.</summary>
+    public bool FirstRunDone { get; set; }
+    /// <summary>Windows notifications for things that need attention (a list update failing, protection weakening, a schedule pausing it).</summary>
+    public bool Notifications { get; set; } = true;
+    /// <summary>Ctrl+Alt+H pauses or resumes protection from anywhere.</summary>
+    public bool PauseHotkey { get; set; } = true;
+    /// <summary>"light", "standard" or "strict": which built-in lists are on (see <see cref="ListProfiles"/>).</summary>
+    public string Profile { get; set; } = "standard";
+    public List<ScheduleRule> Schedules { get; set; } = [];
+    public List<TimedAllow> TimedAllows { get; set; } = [];
     /// <summary>"Off", or the id of a built-in DNS-over-HTTPS provider (cloudflare, quad9, google).</summary>
     public string EncryptedDns { get; set; } = "Off";
     /// <summary>Opt-in: filter YouTube/Twitch ads inside the page (needs the local certificate).</summary>
@@ -86,6 +96,8 @@ public static class SettingsStore
             s = new();
         }
         Sanitize(s);
+        // a settings file from before the wizard existed: this is not a first run
+        try { if (!s.FirstRunDone && File.Exists(Paths.SettingsFile) && !File.ReadAllText(Paths.SettingsFile).Contains("FirstRunDone")) s.FirstRunDone = true; } catch (IOException) { }
         return s;
     }
 
@@ -116,6 +128,12 @@ public static class SettingsStore
         s.ExemptApps = s.ExemptApps.Where(p => p.Length < 520).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (s.BlockMode is not ("NullIp" or "Nxdomain")) s.BlockMode = "NullIp";
         if (s.EncryptedDns != "Off" && DohUpstream.Find(s.EncryptedDns) is null) s.EncryptedDns = "Off";
+        if (ListProfiles.Find(s.Profile) is null) s.Profile = "standard";
+        s.Schedules ??= []; s.TimedAllows ??= [];
+        s.Schedules = s.Schedules.Where(r => r is not null && (r.Action == "Pause" || (r.Action ?? "").StartsWith("Profile:", StringComparison.Ordinal) && ListProfiles.Find(r.Action[8..]) is not null))
+            .Take(20).Select(r => { r.Name = (r.Name ?? "").Length > 40 ? r.Name![..40] : r.Name ?? ""; r.Days &= 127; r.StartMinute = Math.Clamp(r.StartMinute, 0, 1439); r.EndMinute = Math.Clamp(r.EndMinute, 0, 1439); return r; }).ToList();
+        s.TimedAllows = s.TimedAllows.Where(a => a is not null && Domain.Normalize(a.Domain) is not null).Take(200).Select(a => { a.Domain = Domain.Normalize(a.Domain)!; return a; }).ToList();
+        TimedAllows.Prune(s.TimedAllows, DateTime.UtcNow);
     }
 
     static readonly object saveGate = new();
