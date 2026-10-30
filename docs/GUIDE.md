@@ -99,7 +99,7 @@ the HTTPS filter against a fake origin, UI rendering, DNS takeover/restore and a
 behaviour; Windows 10.
 
 **Planned:** a background Windows service with an unprivileged UI, a wizard-style installer, automatic updates, DNS-over-HTTPS upstreams, optional Windows Filtering Platform enforcement against DNS bypass,
-SQLite activity history, code signing.
+SQLite activity history.
 
 ## Everyday helpers
 

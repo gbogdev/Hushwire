@@ -1,7 +1,6 @@
 name: build
 
 # Builds Hushwire from source on a clean GitHub-hosted Windows machine, and produces the installers.
-# This is the "verifiable build" that code signing (SignPath Foundation) is meant to attest to.
 on:
   push:
     branches: [main]

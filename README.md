@@ -32,7 +32,7 @@
 Hushwire is a small Windows app that blocks ads, trackers and known-bad sites for **every program on your PC**: browsers, launchers, games and apps. It does this by
 answering their DNS lookups itself. It lives in the tray, uses about as much CPU as a clock, and switches off with one click.
 
-> **Early release (v0.1).** It runs daily on the author's PC, but the installer is not code-signed yet, so Windows SmartScreen may warn on first run. See [Code signing](#code-signing).
+> **Early release (v0.1).** It runs daily on the author's PC, but the installer is not code-signed yet, so Windows SmartScreen may warn on first run. See [Verifying downloads](#verifying-downloads).
 
 ## Privacy first
 
@@ -165,14 +165,9 @@ If you ran the plain exe instead of the installer:
 - **[Performance](docs/PERFORMANCE.md)**: measurements, method and how to reproduce them.
 - **[Security policy](SECURITY.md)** · **[Third-party notices](THIRD_PARTY_NOTICES.md)**
 
-## Code signing
+## Verifying downloads
 
-Releases are **not signed yet**. The project is applying for free code signing from the [SignPath Foundation](https://signpath.org/). Until then SmartScreen may warn when you run the installer. Check the SHA-256 on the release page.
-The policy is in [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md). Installers are built from source by a [GitHub Actions workflow](.github/workflows/build.yml).
-
-| Role | Who |
-|---|---|
-| Committer, reviewer and approver | [gbogdev](https://github.com/gbogdev) |
+Releases are not code-signed, so SmartScreen may warn when you run the installer. Installers are built from source by a [GitHub Actions workflow](.github/workflows/build.yml); compare the SHA-256 on the release page with your download.
 
 ## License
 
