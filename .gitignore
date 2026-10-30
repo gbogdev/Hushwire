@@ -4,3 +4,14 @@ obj/
 *.user
 dist*/
 TestResults/
+
+# never commit secrets, keys or local data
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+.env
+.env.*
+settings.json*
+*.log
