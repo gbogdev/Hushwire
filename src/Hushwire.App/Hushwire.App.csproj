@@ -12,7 +12,7 @@
     <ApplicationIcon>Assets\hushwire.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationManifest Condition="'$(Configuration)'=='Debug'">app.dev.manifest</ApplicationManifest>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <Product>Hushwire</Product>
     <Company>gbogdev</Company>
     <Copyright>Copyright (C) 2026 gbogdev. GNU GPL v3.0.</Copyright>
